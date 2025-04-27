@@ -23,7 +23,6 @@ contract LotteryGame {
     // - Array for previous winners
     address[] public prevWinners;
 
-
     // TODO: Declare events
     // - PlayerRegistered
     event PlayerRegistered(address indexed players, uint256 stakedAmount);
@@ -39,7 +38,7 @@ contract LotteryGame {
     function register() public payable {
         // TODO: Implement registration logic
         // - Verify correct payment amount
-        require(msg.value == 0.02 ether, 'Please stake 0.02 ETH');
+        require(msg.value == 0.02 ether, "Please stake 0.02 ETH");
         // - Add player to mapping
         players[msg.sender] = Player({attempts: 2, active: true});
         // - Add player address to array
@@ -57,7 +56,7 @@ contract LotteryGame {
     function guessNumber(uint256 guess) public {
         // TODO: Implement guessing logic
         // - Validate guess is between 1 and 9
-        require(guess >= 1 && guess <= 9, 'Number must be between 1 and 9');
+        require(guess >= 1 && guess <= 9, "Number must be between 1 and 9");
         // - Check player is registered and has attempts left
         require(players[msg.sender].active, "Player is not active");
         require(players[msg.sender].attempts > 0, "Player has already made 2 attempts");
@@ -88,7 +87,7 @@ contract LotteryGame {
         uint256 remainingDust = totalPrizePool - (prizePerWinner * winners.length);
 
         // - Transfer prizes to winners
-        for(uint256 i = 0; i < winners.length; i++) {
+        for (uint256 i = 0; i < winners.length; i++) {
             uint256 amount = prizePerWinner;
 
             // Adding any dust lost from the earlier division to the winner
@@ -96,23 +95,23 @@ contract LotteryGame {
                 amount += remainingDust;
             }
 
-            (bool success,) = payable(winners[i]).call{value: amount}(""); 
+            (bool success,) = payable(winners[i]).call{value: amount}("");
             require(success, "Failed to transfer the prize.");
         }
 
         // - Update previous winners list
-        for(uint256 i = 0; i < winners.length; i++) {
+        for (uint256 i = 0; i < winners.length; i++) {
             prevWinners.push(winners[i]);
         }
 
         // - Reset game state
-        for(uint256 i = 0; i < playersAddress.length; i++) {
+        for (uint256 i = 0; i < playersAddress.length; i++) {
             delete players[playersAddress[i]];
         }
         delete playersAddress;
         delete winners;
 
-        uint256 distributedAmount = totalPrizePool; 
+        uint256 distributedAmount = totalPrizePool;
         totalPrizePool = 0;
 
         // - Emit event
