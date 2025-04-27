@@ -30,24 +30,24 @@ contract LotteryGame {
     // - GuessResult
     event GuessResult(address indexed player, uint256 guess, bool wasCorrect);
     // - PrizesDistributed
-    event PrizesDistributed(uint256 prizePerWinner, uint256 totalPrize);
+    event PrizesDistributed(uint256 individualPrize, uint256 totalPrize);
 
     /**
      * @dev Register to play the game
      * Players must stake exactly 0.02 ETH to participate
      */
-    function register(uint256 paymentAmount) public payable {
+    function register() public payable {
         // TODO: Implement registration logic
         // - Verify correct payment amount
-        require(paymentAmount == 0.02 ether, 'Must stake 0.02ETH to be able to register');
+        require(msg.value == 0.02 ether, 'Please stake 0.02 ETH');
         // - Add player to mapping
-        players[msg.sender] = Player({attempts: 3, active: true});
+        players[msg.sender] = Player({attempts: 2, active: true});
         // - Add player address to array
         playersAddress.push(msg.sender);
         // - Update total prize
-        totalPrizePool += paymentAmount;
+        totalPrizePool += msg.value;
         // - Emit registration event
-        emit PlayerRegistered(msg.sender, paymentAmount);
+        emit PlayerRegistered(msg.sender, msg.value);
     }
 
     /**
@@ -57,12 +57,22 @@ contract LotteryGame {
     function guessNumber(uint256 guess) public {
         // TODO: Implement guessing logic
         // - Validate guess is between 1 and 9
+        require(guess >= 1 && guess <= 9, 'Number must be between 1 and 9');
         // - Check player is registered and has attempts left
+        require(players[msg.sender].active, "Player is not active");
+        require(players[msg.sender].attempts > 0, "Player has already made 2 attempts");
         // - Generate "random" number
+        uint256 randomNumber = _generateRandomNumber();
         // - Compare guess with random number
+        bool isCorrect = (randomNumber == guess);
         // - Update player attempts
+        players[msg.sender].attempts--;
         // - Handle correct guesses
+        if (isCorrect) {
+            winners.push(msg.sender);
+        }
         // - Emit appropriate event
+        emit GuessResult(msg.sender, guess, isCorrect);
     }
 
     /**
@@ -70,11 +80,43 @@ contract LotteryGame {
      */
     function distributePrizes() public {
         // TODO: Implement prize distribution logic
+        require(winners.length > 0, "No winners to distribute prizes to.");
+        require(totalPrizePool > 0, "No prizes to distribute.");
+
         // - Calculate prize amount per winner
+        uint256 prizePerWinner = totalPrizePool / winners.length;
+        uint256 remainingDust = totalPrizePool - (prizePerWinner * winners.length);
+
         // - Transfer prizes to winners
+        for(uint256 i = 0; i < winners.length; i++) {
+            uint256 amount = prizePerWinner;
+
+            // Adding any dust lost from the earlier division to the winner
+            if (i == winners.length - 1) {
+                amount += remainingDust;
+            }
+
+            (bool success,) = payable(winners[i]).call{value: amount}(""); 
+            require(success, "Failed to transfer the prize.");
+        }
+
         // - Update previous winners list
+        for(uint256 i = 0; i < winners.length; i++) {
+            prevWinners.push(winners[i]);
+        }
+
         // - Reset game state
+        for(uint256 i = 0; i < playersAddress.length; i++) {
+            delete players[playersAddress[i]];
+        }
+        delete playersAddress;
+        delete winners;
+
+        uint256 distributedAmount = totalPrizePool; 
+        totalPrizePool = 0;
+
         // - Emit event
+        emit PrizesDistributed(prizePerWinner, distributedAmount);
     }
 
     /**
@@ -83,6 +125,7 @@ contract LotteryGame {
      */
     function getPrevWinners() public view returns (address[] memory) {
         // TODO: Return previous winners array
+        return prevWinners;
     }
 
     /**
