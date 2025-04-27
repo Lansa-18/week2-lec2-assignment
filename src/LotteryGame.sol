@@ -13,27 +13,41 @@ contract LotteryGame {
 
     // TODO: Declare state variables
     // - Mapping for player information
+    mapping(address => Player) public players;
     // - Array to track player addresses
+    address[] public playersAddress;
     // - Total prize pool
+    uint256 public totalPrizePool;
     // - Array for winners
+    address[] public winners;
     // - Array for previous winners
+    address[] public prevWinners;
+
 
     // TODO: Declare events
     // - PlayerRegistered
+    event PlayerRegistered(address indexed players, uint256 stakedAmount);
     // - GuessResult
+    event GuessResult(address indexed player, uint256 guess, bool wasCorrect);
     // - PrizesDistributed
+    event PrizesDistributed(uint256 prizePerWinner, uint256 totalPrize);
 
     /**
      * @dev Register to play the game
      * Players must stake exactly 0.02 ETH to participate
      */
-    function register() public payable {
+    function register(uint256 paymentAmount) public payable {
         // TODO: Implement registration logic
         // - Verify correct payment amount
+        require(paymentAmount == 0.02 ether, 'Must stake 0.02ETH to be able to register');
         // - Add player to mapping
+        players[msg.sender] = Player({attempts: 3, active: true});
         // - Add player address to array
+        playersAddress.push(msg.sender);
         // - Update total prize
+        totalPrizePool += paymentAmount;
         // - Emit registration event
+        emit PlayerRegistered(msg.sender, paymentAmount);
     }
 
     /**
