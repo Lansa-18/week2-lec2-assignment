@@ -30,9 +30,9 @@ contract LotteryGameTest is Test {
         game.register{value: 0.02 ether}();
 
         (uint256 attempts, bool active) = game.players(player1);
-        assertEq(attempts, 2);
+        assertEq(attempts, 0);
         assertTrue(active);
-        assertEq(game.totalPrizePool(), 0.02 ether);
+        assertEq(game.totalPrize(), 0.02 ether);
     }
 
     function testRegisterWithIncorrectAmount() public {
@@ -93,7 +93,7 @@ contract LotteryGameTest is Test {
     }
 
     function testDistributePrizesNoWinners() public {
-        vm.expectRevert("No winners to distribute prizes to.");
+        vm.expectRevert("No winners to distribute prizes to");
         game.distributePrizes();
     }
 }

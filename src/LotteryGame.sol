@@ -17,7 +17,7 @@ contract LotteryGame {
     // - Array to track player addresses
     address[] public playersAddress;
     // - Total prize pool
-    uint256 public totalPrizePool;
+    uint256 public totalPrize;
     // - Array for winners
     address[] public winners;
     // - Array for previous winners
@@ -40,11 +40,11 @@ contract LotteryGame {
         // - Verify correct payment amount
         require(msg.value == 0.02 ether, "Please stake 0.02 ETH");
         // - Add player to mapping
-        players[msg.sender] = Player({attempts: 2, active: true});
+        players[msg.sender] = Player({attempts: 0, active: true});
         // - Add player address to array
         playersAddress.push(msg.sender);
         // - Update total prize
-        totalPrizePool += msg.value;
+        totalPrize += msg.value;
         // - Emit registration event
         emit PlayerRegistered(msg.sender, msg.value);
     }
@@ -59,13 +59,17 @@ contract LotteryGame {
         require(guess >= 1 && guess <= 9, "Number must be between 1 and 9");
         // - Check player is registered and has attempts left
         require(players[msg.sender].active, "Player is not active");
-        require(players[msg.sender].attempts > 0, "Player has already made 2 attempts");
+        require(players[msg.sender].attempts < 2, "Player has already made 2 attempts");
+
+        // - Update player attempts
+        players[msg.sender].attempts++;
+
         // - Generate "random" number
         uint256 randomNumber = _generateRandomNumber();
+
         // - Compare guess with random number
         bool isCorrect = (randomNumber == guess);
-        // - Update player attempts
-        players[msg.sender].attempts--;
+
         // - Handle correct guesses
         if (isCorrect) {
             winners.push(msg.sender);
@@ -79,12 +83,12 @@ contract LotteryGame {
      */
     function distributePrizes() public {
         // TODO: Implement prize distribution logic
-        require(winners.length > 0, "No winners to distribute prizes to.");
-        require(totalPrizePool > 0, "No prizes to distribute.");
+        require(winners.length > 0, "No winners to distribute prizes to");
+        require(totalPrize > 0, "No prizes to distribute.");
 
         // - Calculate prize amount per winner
-        uint256 prizePerWinner = totalPrizePool / winners.length;
-        uint256 remainingDust = totalPrizePool - (prizePerWinner * winners.length);
+        uint256 prizePerWinner = totalPrize / winners.length;
+        uint256 remainingDust = totalPrize - (prizePerWinner * winners.length);
 
         // - Transfer prizes to winners
         for (uint256 i = 0; i < winners.length; i++) {
@@ -111,8 +115,8 @@ contract LotteryGame {
         delete playersAddress;
         delete winners;
 
-        uint256 distributedAmount = totalPrizePool;
-        totalPrizePool = 0;
+        uint256 distributedAmount = totalPrize;
+        totalPrize = 0;
 
         // - Emit event
         emit PrizesDistributed(prizePerWinner, distributedAmount);
